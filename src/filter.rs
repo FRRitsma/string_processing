@@ -1,3 +1,4 @@
+use crate::optimizer::length_and_hash_of_shared_substring;
 use ahash::AHasher;
 use std::hash::Hasher;
 
@@ -48,10 +49,41 @@ pub fn filter_forbidden_hash_single<T: AsRef<[u8]>>(
     String::from_utf8(result).unwrap()
 }
 
+pub fn remove_substrings(string_vector: Vec<String>, minimum_size: usize) -> Vec<String> {
+    // Loop initialization:
+    let mut inner_vector: Vec<String>;
+
+    // First overlap search can not rely on previous computations (maximum_size = None):
+    let length_and_hash = length_and_hash_of_shared_substring(minimum_size, None, &string_vector);
+
+    // Enter loop if overlap is found:
+    if let Some((length, forbidden_hash)) = length_and_hash {
+        // Filter strings:
+        inner_vector = filter_forbidden_hash_multiple(string_vector, length, forbidden_hash);
+
+        // Keep filtering strings, until no overlap is found:
+        for _ in 0..MAX_LOOP {
+            // Find the length and hash of the longest shared substring:
+            let length_and_hash =
+                length_and_hash_of_shared_substring(minimum_size, Some(length), &inner_vector);
+            // If an overlap is found, filter the strings and repeat:
+            if let Some((length, forbidden_hash)) = length_and_hash {
+                inner_vector = filter_forbidden_hash_multiple(inner_vector, length, forbidden_hash);
+            } else {
+                return inner_vector;
+            }
+        }
+    }
+    // Return original vector if no overlap was found:
+    else {
+        return string_vector;
+    }
+    inner_vector
+}
+
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::optimizer::length_and_hash_of_shared_substring;
+    use crate::filter::remove_substrings;
     use crate::test_utils::load_txt_files_as_vector_of_str;
 
     #[test]
@@ -62,42 +94,5 @@ mod tests {
         let filtered_vector = remove_substrings(string_vector, minimum_size);
 
         println!("{:?}", filtered_vector);
-    }
-
-    fn remove_substrings(string_vector: Vec<String>, minimum_size: usize) -> Vec<String> {
-        // Loop initialization:
-        let mut inner_vector: Vec<String>;
-        let length: usize;
-        let forbidden_hash: u64;
-
-        // First overlap search can not rely on previous computations (maximum_size = None):
-        let length_and_hash =
-            length_and_hash_of_shared_substring(minimum_size, None, &string_vector);
-
-        // Enter loop if overlap is found:
-        if let Some((length, forbidden_hash)) = length_and_hash {
-            // Filter strings:
-            inner_vector = filter_forbidden_hash_multiple(string_vector, length, forbidden_hash);
-
-            // Keep filtering strings, until no overlap is found:
-            for _ in 0..MAX_LOOP {
-                // Find the length and hash of the longest shared substring:
-                let length_and_hash =
-                    length_and_hash_of_shared_substring(minimum_size, Some(length), &inner_vector);
-                // If an overlap is found, filter the strings and repeat:
-                if let Some((length, forbidden_hash)) = length_and_hash {
-                    inner_vector =
-                        filter_forbidden_hash_multiple(inner_vector, length, forbidden_hash);
-                    println!("{}", length);
-                } else {
-                    return inner_vector;
-                }
-            }
-        }
-        // Return original vector if no overlap was found:
-        else {
-            return string_vector;
-        }
-        inner_vector
     }
 }

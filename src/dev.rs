@@ -3,7 +3,6 @@ use crate::has_len_trait::HasLen;
 use ahash::AHasher;
 use itertools::Itertools;
 use std::collections::HashSet;
-use std::fs;
 use std::hash::Hasher;
 
 pub fn convert_to_hashset<T: ByteSliceable>(text: &T, k: usize) -> HashSet<u64> {
@@ -12,17 +11,17 @@ pub fn convert_to_hashset<T: ByteSliceable>(text: &T, k: usize) -> HashSet<u64> 
         return HashSet::new();
     }
 
-    let mut hashes = HashSet::with_capacity(text.len().saturating_sub(k) + 1);
+    let mut hash_set = HashSet::with_capacity(text.len().saturating_sub(k) + 1);
     let bytes = text.as_bytes(); // Work with raw bytes for faster slicing
 
     for i in 0..=bytes.len().saturating_sub(k) {
         let substring = &bytes[i..i + k];
         let mut hasher = AHasher::default();
         hasher.write(substring);
-        hashes.insert(hasher.finish());
+        hash_set.insert(hasher.finish());
     }
 
-    hashes
+    hash_set
 }
 
 pub fn convert_multiple_to_hashset<T: ByteSliceable>(items: &[T], k: usize) -> Vec<HashSet<u64>> {

@@ -6,3 +6,8 @@ edition = "2024"
 [dependencies]
 ahash = "0.8.12"
 itertools = "0.14.0"
+pyo3 = "0.25.0"
+
+[lib]
+name = "string_processing"
+crate-type = ["cdylib"]
