@@ -1,0 +1,12 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "string_processing"
+version = "0.1.0"  # Auto-synced with Cargo.toml
+requires-python = ">=3.8"
+
+[tool.maturin]
+include = ["python/stubs/*.pyi"]  # Critical for stub inclusion
+features = ["pyo3/extension-module"]

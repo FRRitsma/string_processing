@@ -1,3 +1,5 @@
 /target
 /demo_env
 *.txt
+/new_env/
+/venv/

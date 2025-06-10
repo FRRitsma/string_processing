@@ -27,4 +27,4 @@ Activate environment:
 
 Install from wheel:
 
-`pip install target/wheels/your_package_name-*.whl`
+`pip install target/wheels/string_processing-0.1.0-cp311-cp311-win_amd64.whl`
