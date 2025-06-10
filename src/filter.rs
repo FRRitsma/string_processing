@@ -51,8 +51,6 @@ pub fn filter_forbidden_hash_single<T: AsRef<[u8]>>(
         Err(e) => String::from_utf8_lossy(e.as_bytes()).into_owned(),
     }
 
-
-    // String::from_utf8_lossy(&*result).into_owned()
 }
 
 pub fn remove_substrings(string_vector: Vec<String>, minimum_size: usize) -> Vec<String> {

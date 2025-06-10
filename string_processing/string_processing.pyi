@@ -11,3 +11,10 @@ def filter_list_of_strings(strings: list[str], min_size: int) -> list[str]:
         ['bbb', 'ccc']
     """
     ...
+
+
+def test_new_upload():
+    """
+    Does nothing
+    :return:
+    """
