@@ -3,8 +3,8 @@ use crate::has_len_trait::HasLen;
 use ahash::AHasher;
 use itertools::Itertools;
 use std::collections::HashSet;
-use std::hash::Hasher;
 use std::fs;
+use std::hash::Hasher;
 
 pub fn convert_to_hashset<T: ByteSliceable>(text: &T, k: usize) -> HashSet<u64> {
     // Early return for edge cases
