@@ -13,8 +13,9 @@ def filter_list_of_strings(strings: list[str], min_size: int) -> list[str]:
     ...
 
 
-def test_new_upload():
+def filter_list_of_strings_prefix(strings: list[str], min_size: int) -> list[str]:
     """
-    Does nothing
-    :return:
+    Removes shared prefixes that are longer than min_size
     """
+    ...
+
