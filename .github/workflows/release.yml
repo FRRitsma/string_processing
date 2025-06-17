@@ -1,3 +1,6 @@
+# To test locally:
+# act -W .github/workflows/release.yml
+
 name: Build and release GitHub wheels
 
 on:
@@ -11,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
         include:
           - os: ubuntu-latest
             wheel_platform: manylinux_2_34_x86_64
