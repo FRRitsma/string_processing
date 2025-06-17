@@ -1,0 +1,71 @@
+name: Build and release GitHub wheels
+
+on:
+  push:
+    tags: ["v*"]  # Trigger on version tags
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  build-wheels:
+    name: Build wheels
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            wheel_platform: manylinux_2_34_x86_64
+          - os: windows-latest
+            wheel_platform: win_amd64
+          - os: macos-latest
+            wheel_platform: macosx_11_0_x86_64
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"  # Just need any Python for maturin
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    - name: Install maturin
+      run: pip install maturin
+
+    - name: Build platform-specific wheel
+      run: |
+        maturin build --release --strip --interpreter python \
+        --target ${{ matrix.wheel_platform }}
+      env:
+        MATURIN_PYPI_MANYLINUX: auto
+
+    - name: Upload wheel as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: wheels-${{ matrix.os }}
+        path: target/wheels/*.whl
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-wheels
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/download-artifact@v3
+      with:
+        name: wheels-ubuntu-latest
+        path: dist
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        files: |
+          dist/*.whl
+          target/wheels/*.whl
+        generate_release_notes: true
