@@ -3,3 +3,5 @@
 *.txt
 /new_env/
 /venv/
+/src/wiki_files/
+/src/processed_wiki_files/

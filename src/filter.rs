@@ -46,7 +46,10 @@ pub fn filter_forbidden_hash_single<T: AsRef<[u8]>>(
         result.extend_from_slice(&bytes[i..]);
     }
 
-    String::from_utf8(result).unwrap()
+    match String::from_utf8(result) {
+        Ok(s) => s, // Already valid UTF-8 → return as-is
+        Err(e) => String::from_utf8_lossy(e.as_bytes()).into_owned(),
+    }
 }
 
 pub fn remove_substrings(string_vector: Vec<String>, minimum_size: usize) -> Vec<String> {
