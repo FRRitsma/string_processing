@@ -16,7 +16,7 @@ fn name_in_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
 }
 
 
-# Using in python
+# Local install:
 Build a .venv:
 
 `python -m venv demo_env`
@@ -28,3 +28,7 @@ Activate environment:
 Install from wheel:
 
 `pip install target/wheels/string_processing-0.1.0-cp311-cp311-win_amd64.whl`
+
+# Pip install from github:
+
+`pip install https://github.com/FRRitsma/string_processing/releases/download/v1/string_processing-0.1.0-cp310-cp310-manylinux_2_34_x86_64.whl`
