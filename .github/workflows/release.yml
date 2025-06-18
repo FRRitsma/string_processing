@@ -49,6 +49,7 @@ jobs:
   create-release:
     needs: build-wheels
     runs-on: ubuntu-latest
+    permissions: write-all
     steps:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
