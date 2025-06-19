@@ -60,7 +60,6 @@ mod tests {
                 }
             }
         }
-
     }
 
     #[test]
