@@ -1,8 +1,8 @@
 use cyclic_poly_23::CyclicPoly64;
+use rayon::prelude::*;
 use std::collections::HashSet;
 use std::ops::Range;
 use std::sync::Mutex;
-use rayon::prelude::*;
 
 #[derive(Debug)]
 pub struct StringSupervisor {
@@ -52,7 +52,6 @@ impl StringSupervisor {
             complete_hashset: complete_hash_set,
             duplicate_hash_set: HashSet::new(),
         }
-
     }
 
     fn reducable(&self) -> bool {
@@ -69,6 +68,7 @@ impl StringSupervisor {
     }
 
     pub fn is_duplicate_mask(&self) -> Vec<bool> {
+        // Returns a mask that is true where hash_vec has duplicated string windows
         let is_duplicate = self
             .hash_vec
             .iter()
@@ -107,11 +107,13 @@ impl StringSupervisor {
     }
 
     pub fn filter_string(&mut self) -> String {
-        for range in self.filter_range().into_iter().rev() {
-            // Convert char-index range to byte-index range using byte_offsets
-            let byte_start = self.byte_offsets[range.start];
-            let byte_end = self.byte_offsets[range.end];
-            self.base_string.drain(byte_start..byte_end);
+        if self.reducable() {
+            for range in self.filter_range().into_iter().rev() {
+                // Convert char-index range to byte-index range using byte_offsets
+                let byte_start = self.byte_offsets[range.start];
+                let byte_end = self.byte_offsets[range.end];
+                self.base_string.drain(byte_start..byte_end);
+            }
         }
         self.base_string.clone()
     }
@@ -133,7 +135,7 @@ fn get_hash_vec_and_hash_set(bytes: Vec<u8>, window_size: usize) -> (Vec<u64>, H
     (hash_vec, hash_set)
 }
 
-pub(crate) fn clean_list_of_strings(strings: Vec<String>, minimum_size: usize) -> Vec<String>{
+pub(crate) fn clean_list_of_strings(strings: Vec<String>, minimum_size: usize) -> Vec<String> {
     // Wrap each StringSupervisor in a Mutex
     let supervisor_vec: Vec<Mutex<StringSupervisor>> = strings
         .into_par_iter()
@@ -154,15 +156,13 @@ pub(crate) fn clean_list_of_strings(strings: Vec<String>, minimum_size: usize) -
         .into_par_iter()
         .map(|m| m.into_inner().unwrap().filter_string())
         .collect()
-
 }
-
 
 #[cfg(test)]
 mod tests {
+    use crate::string_filter_rolling_hash::StringSupervisor;
     use crate::string_filter_rolling_hash::clean_list_of_strings;
     use crate::test_utils::list_txt_files;
-    use crate::string_filter_rolling_hash::StringSupervisor;
 
     #[test]
     fn debug2() {
@@ -182,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn clean_large_set_of_files(){
+    fn clean_large_set_of_files() {
         use std::fs::{self, File};
 
         let wiki_files_dir = "src/wiki_files/";
@@ -199,6 +199,4 @@ mod tests {
         let clean_strings = clean_list_of_strings(strings, 50);
         println!("{:?}", clean_strings);
     }
-
-
 }
