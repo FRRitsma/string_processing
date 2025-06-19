@@ -70,5 +70,4 @@ mod tests {
             clean_string
         );
     }
-
 }

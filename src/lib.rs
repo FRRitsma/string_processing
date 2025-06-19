@@ -1,3 +1,8 @@
+extern crate ahash;
+extern crate cyclic_poly_23;
+extern crate itertools;
+extern crate pyo3;
+
 mod byte_sliceable_trait;
 mod dev;
 mod filter;
@@ -5,6 +10,8 @@ mod from_files;
 mod has_len_trait;
 mod optimizer;
 mod prefix_removal;
+mod remake;
+mod remake_hash;
 mod test_utils;
 
 use pyo3::prelude::*;
