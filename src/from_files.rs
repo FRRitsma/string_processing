@@ -5,7 +5,7 @@ fn filter_files() {}
 mod tests {
     use crate::filter;
     use crate::remake::clean_vector_of_strings;
-    use crate::remake_hash::StringSupervisor;
+    use crate::string_filter_rolling_hash::StringSupervisor;
     use crate::test_utils::list_txt_files;
     use std::fs;
     use std::fs::File;

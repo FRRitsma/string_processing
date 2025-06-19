@@ -1,6 +1,7 @@
 use cyclic_poly_23::CyclicPoly64;
 use std::collections::HashSet;
 use std::ops::Range;
+use std::sync::Mutex;
 use rayon::prelude::*;
 
 #[derive(Debug)]
@@ -132,33 +133,36 @@ fn get_hash_vec_and_hash_set(bytes: Vec<u8>, window_size: usize) -> (Vec<u64>, H
     (hash_vec, hash_set)
 }
 
-fn clean_list_of_strings(strings: Vec<String>, minimum_size: usize) -> Vec<String>{
-    let mut supervisor_vec: Vec<StringSupervisor> = strings.into_iter().map(|x| StringSupervisor::from_string(x, minimum_size)).collect();
+pub(crate) fn clean_list_of_strings(strings: Vec<String>, minimum_size: usize) -> Vec<String>{
+    // Wrap each StringSupervisor in a Mutex
+    let supervisor_vec: Vec<Mutex<StringSupervisor>> = strings
+        .into_par_iter()
+        .map(|s| Mutex::new(StringSupervisor::from_string(s, minimum_size)))
+        .collect();
 
-    for i in 0..supervisor_vec.len() {
+    // Parallel comparison
+    (0..supervisor_vec.len()).into_par_iter().for_each(|i| {
         for j in (i + 1)..supervisor_vec.len() {
-            if i == j {
-                continue;
-            }
-            unsafe {
-                let visor1 = &mut *supervisor_vec.as_mut_ptr().add(i);
-                let visor2 = &mut *supervisor_vec.as_mut_ptr().add(j);
-                visor1.compare(visor2);
-            }
+            let mut visor1 = supervisor_vec[i].lock().unwrap();
+            let mut visor2 = supervisor_vec[j].lock().unwrap();
+            visor1.compare(&mut visor2);
         }
-    }
+    });
 
-    supervisor_vec.into_par_iter().map(|mut x| x.filter_string()).collect()
-
+    // Extract the results
+    supervisor_vec
+        .into_par_iter()
+        .map(|m| m.into_inner().unwrap().filter_string())
+        .collect()
 
 }
 
 
 #[cfg(test)]
 mod tests {
-    use crate::remake_hash::clean_list_of_strings;
+    use crate::string_filter_rolling_hash::clean_list_of_strings;
     use crate::test_utils::list_txt_files;
-    use crate::remake_hash::StringSupervisor;
+    use crate::string_filter_rolling_hash::StringSupervisor;
 
     #[test]
     fn debug2() {

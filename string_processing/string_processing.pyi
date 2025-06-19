@@ -11,11 +11,3 @@ def filter_list_of_strings(strings: list[str], min_size: int) -> list[str]:
         ['bbb', 'ccc']
     """
     ...
-
-
-def filter_list_of_strings_prefix(strings: list[str], min_size: int) -> list[str]:
-    """
-    Removes shared prefixes that are longer than min_size
-    """
-    ...
-

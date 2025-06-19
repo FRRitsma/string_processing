@@ -1,17 +1,15 @@
-extern crate ahash;
 extern crate cyclic_poly_23;
 extern crate itertools;
 extern crate pyo3;
 
 mod byte_sliceable_trait;
 mod dev;
-mod filter;
 mod from_files;
 mod has_len_trait;
 mod optimizer;
 mod prefix_removal;
 mod remake;
-mod remake_hash;
+mod string_filter_rolling_hash;
 mod test_utils;
 
 use pyo3::prelude::*;
@@ -31,7 +29,7 @@ use pyo3::prelude::*;
 #[pyo3(signature = (strings, minimum_size))]
 #[pyo3(text_signature = "(strings: list[str], minimum_size: int) -> list[str]")]
 fn filter_list_of_strings(strings: Vec<String>, minimum_size: usize) -> PyResult<Vec<String>> {
-    let filtered_strings = filter::remove_substrings(strings, minimum_size);
+    let filtered_strings = clean_list_of_strings(strings, minimum_size);
     Ok(filtered_strings)
 }
 
