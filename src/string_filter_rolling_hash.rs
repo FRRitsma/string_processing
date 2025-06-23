@@ -116,7 +116,6 @@ fn get_hash_vec_and_hash_set(bytes: Vec<u8>, window_size: usize) -> (Vec<u64>, H
     let mut hash_set: HashSet<u64> = HashSet::new();
     hash_set.reserve(amount_of_hashes);
 
-
     let mut hasher = CyclicPoly64::from_block(&bytes[0..window_size]);
 
     hash_set.insert(hasher.value());
@@ -157,8 +156,10 @@ fn get_all_second_occurrences_of_substrings(
     second_set
 }
 
-
-pub(crate) fn clean_list_of_strings_single_pass(strings: Vec<String>, minimum_size: usize) -> Vec<String> {
+pub(crate) fn clean_list_of_strings_single_pass(
+    strings: Vec<String>,
+    minimum_size: usize,
+) -> Vec<String> {
     let supervisor_vec: Vec<StringSupervisor> = strings
         .into_iter()
         .map(|s| StringSupervisor::from_string(s, minimum_size))
@@ -206,7 +207,7 @@ mod tests {
             &mut second_set,
             &string_supervisor_1,
         );
-                track_first_and_second_occurrence_of_substring(
+        track_first_and_second_occurrence_of_substring(
             &mut first_set,
             &mut second_set,
             &string_supervisor_2,

@@ -1,14 +1,17 @@
 from string_processing import filter_list_of_strings
 
-# print(string_processing.__all__)
-help(filter_list_of_strings)
 
-# from string_processing.string_processing import filter_list_of_strings
-#
-print(filter_list_of_strings(["aaaaaaaaabbbbb", "ccccccccbbbbb"], 4))
-
-def test_filter_list_of_strings() -> None:
+def test_filter_list_of_strings_removes_substring() -> None:
     substring: str = "cccccc"
     strings: list[str] = ["aaaaaaaa", "bbbbbbb"]
     test_input: list[str] = [string + substring for string in strings]
     assert filter_list_of_strings(test_input, 4) == strings
+    assert strings != test_input
+
+
+def test_filter_list_of_strings_keeps_substring() -> None:
+    substring: str = "cccccc"
+    strings: list[str] = ["aaaaaaaa", "bbbbbbb"]
+    test_input: list[str] = [string + substring for string in strings]
+    assert filter_list_of_strings(test_input, 10) == test_input
+    assert strings != test_input
