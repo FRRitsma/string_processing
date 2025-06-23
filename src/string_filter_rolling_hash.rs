@@ -1,6 +1,5 @@
 use cyclic_poly_23::CyclicPoly64;
 use rayon::prelude::*;
-use std::arch::x86_64::__m128;
 use std::collections::HashSet;
 use std::ops::Range;
 use std::sync::Mutex;
@@ -216,14 +215,13 @@ fn clean_list_of_strings_single_pass(strings: Vec<String>, minimum_size: usize) 
 #[cfg(test)]
 mod tests {
     use crate::string_filter_rolling_hash::StringSupervisor;
-    use crate::string_filter_rolling_hash::clean_list_of_strings_parallel;
     use crate::string_filter_rolling_hash::clean_list_of_strings_single_pass;
     use crate::string_filter_rolling_hash::track_first_and_second_occurrence_of_substring;
     use crate::test_utils::list_txt_files;
     use std::collections::HashSet;
 
     #[test]
-    fn counting_occurrences_add_to_first_set() {
+    fn counting_occurrences_first_only() {
         let string_supervisor = StringSupervisor::from_string("hell".to_string(), 3);
         let mut first_set: HashSet<u64> = HashSet::new();
         let mut second_set: HashSet<u64> = HashSet::new();
@@ -233,8 +231,8 @@ mod tests {
             &mut second_set,
             &string_supervisor,
         );
-        // println!("{:?}", first_set);
         assert_eq!(first_set, string_supervisor.complete_hashset);
+        assert_ne!(second_set, first_set);
     }
 
     #[test]
