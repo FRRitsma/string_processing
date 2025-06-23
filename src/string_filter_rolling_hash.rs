@@ -1,8 +1,6 @@
 use cyclic_poly_23::CyclicPoly64;
-use rayon::prelude::*;
 use std::collections::HashSet;
 use std::ops::Range;
-use std::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct StringSupervisor {
@@ -11,12 +9,11 @@ pub struct StringSupervisor {
     byte_offsets: Vec<usize>,
     hash_vec: Vec<u64>,
     complete_hashset: HashSet<u64>,
-    duplicate_hashset: HashSet<u64>,
 }
 
 impl StringSupervisor {
     // Constructor:
-    pub fn from_string(base_string: String, window_size: usize) -> Self {
+    fn from_string(base_string: String, window_size: usize) -> Self {
         if window_size > base_string.len() {
             return StringSupervisor {
                 base_string,
@@ -24,7 +21,6 @@ impl StringSupervisor {
                 byte_offsets: vec![],
                 hash_vec: vec![],
                 complete_hashset: HashSet::new(),
-                duplicate_hashset: HashSet::new(),
             };
         }
 
@@ -50,7 +46,6 @@ impl StringSupervisor {
             byte_offsets,
             hash_vec,
             complete_hashset: complete_hash_set,
-            duplicate_hashset: HashSet::new(),
         }
     }
 
@@ -58,16 +53,7 @@ impl StringSupervisor {
         self.window_size < self.base_string.len()
     }
 
-    pub fn compare(&mut self, other: &mut StringSupervisor) {
-        if self.reducable() && other.reducable() {
-            for item in self.complete_hashset.intersection(&other.complete_hashset) {
-                self.duplicate_hashset.insert(*item);
-                other.duplicate_hashset.insert(*item);
-            }
-        }
-    }
-
-    pub fn is_duplicate_mask(&self, filter_hashset: &HashSet<u64>) -> Vec<bool> {
+    fn is_duplicate_mask(&self, filter_hashset: &HashSet<u64>) -> Vec<bool> {
         // Returns a mask that is true where hash_vec has duplicated string windows
         let is_duplicate = self
             .hash_vec
@@ -77,7 +63,7 @@ impl StringSupervisor {
         is_duplicate
     }
 
-    pub fn filter_range(&self, filter_hashset: &HashSet<u64>) -> Vec<Range<usize>> {
+    fn filter_range(&self, filter_hashset: &HashSet<u64>) -> Vec<Range<usize>> {
         let mut filter_range_vec: Vec<Range<usize>> = vec![];
 
         let mut duplicate_mask = self.is_duplicate_mask(filter_hashset);
@@ -106,19 +92,8 @@ impl StringSupervisor {
         filter_range_vec
     }
 
-    pub fn filter_string(&mut self) -> String {
-        if self.reducable() {
-            for range in self.filter_range(&self.duplicate_hashset).into_iter().rev() {
-                // Convert char-index range to byte-index range using byte_offsets
-                let byte_start = self.byte_offsets[range.start];
-                let byte_end = self.byte_offsets[range.end];
-                self.base_string.drain(byte_start..byte_end);
-            }
-        }
-        self.base_string.clone()
-    }
 
-    pub fn filter_string_from_hashset(&mut self, filter_hashset: &HashSet<u64>) -> String {
+    fn filter_string_from_hashset(&mut self, filter_hashset: &HashSet<u64>) -> String {
         if self.reducable() {
             for range in self.filter_range(filter_hashset).into_iter().rev() {
                 // Convert char-index range to byte-index range using byte_offsets
@@ -174,33 +149,8 @@ fn get_all_second_occurrences_of_substrings(
     second_set
 }
 
-pub(crate) fn clean_list_of_strings_parallel(
-    strings: Vec<String>,
-    minimum_size: usize,
-) -> Vec<String> {
-    // Wrap each StringSupervisor in a Mutex
-    let supervisor_vec: Vec<Mutex<StringSupervisor>> = strings
-        .into_par_iter()
-        .map(|s| Mutex::new(StringSupervisor::from_string(s, minimum_size)))
-        .collect();
 
-    // Parallel comparison
-    (0..supervisor_vec.len()).into_par_iter().for_each(|i| {
-        for j in (i + 1)..supervisor_vec.len() {
-            let mut visor1 = supervisor_vec[i].lock().unwrap();
-            let mut visor2 = supervisor_vec[j].lock().unwrap();
-            visor1.compare(&mut visor2);
-        }
-    });
-
-    // Extract the results
-    supervisor_vec
-        .into_par_iter()
-        .map(|m| m.into_inner().unwrap().filter_string())
-        .collect()
-}
-
-fn clean_list_of_strings_single_pass(strings: Vec<String>, minimum_size: usize) -> Vec<String> {
+pub(crate) fn clean_list_of_strings_single_pass(strings: Vec<String>, minimum_size: usize) -> Vec<String> {
     let supervisor_vec: Vec<StringSupervisor> = strings
         .into_iter()
         .map(|s| StringSupervisor::from_string(s, minimum_size))
@@ -236,46 +186,33 @@ mod tests {
     }
 
     #[test]
-    fn debug2() {
-        let string_supervisor = StringSupervisor::from_string("hell".to_string(), 3);
-        assert_eq!(string_supervisor.hash_vec.len(), 2);
-        println!("{:?}", string_supervisor);
+    fn counting_occurrences_first_and_second() {
+        let example_string = "hell";
+        let string_supervisor_1 = StringSupervisor::from_string(example_string.to_string(), 3);
+        let string_supervisor_2 = StringSupervisor::from_string(example_string.to_string(), 3);
+        let mut first_set: HashSet<u64> = HashSet::new();
+        let mut second_set: HashSet<u64> = HashSet::new();
+
+        track_first_and_second_occurrence_of_substring(
+            &mut first_set,
+            &mut second_set,
+            &string_supervisor_1,
+        );
+                track_first_and_second_occurrence_of_substring(
+            &mut first_set,
+            &mut second_set,
+            &string_supervisor_2,
+        );
+
+        assert_eq!(first_set, string_supervisor_1.complete_hashset);
+        assert_eq!(second_set, first_set);
     }
-
-    #[test]
-    fn debug3() {
-        let mut string_supervisor_1 = StringSupervisor::from_string("hel".to_string(), 3);
-        let mut string_supervisor_2 = StringSupervisor::from_string("hel000".to_string(), 3);
-
-        string_supervisor_1.compare(&mut string_supervisor_2);
-
-        println!("{:?}", string_supervisor_1.filter_string());
-    }
-
-    // #[test]
-    // fn clean_large_set_of_files() {
-    //     use std::fs::{self, File};
-    //
-    //     let wiki_files_dir = "src/wiki_files/";
-    //     let txt_files = list_txt_files(wiki_files_dir).unwrap();
-    //
-    //     // Read batch of files into strings
-    //     let mut strings: Vec<String> = vec![];
-    //     for single_txt_file in txt_files.iter() {
-    //         let path = format!("{}{}", wiki_files_dir, single_txt_file);
-    //         let content = fs::read_to_string(path).unwrap();
-    //         strings.push(content);
-    //     }
-    //
-    //     let clean_strings = clean_list_of_strings_parallel(strings, 50);
-    //     println!("{:?}", clean_strings);
-    // }
 
     #[test]
     fn clean_large_set_of_files_single_pass() {
-        use std::fs::{self, File};
+        use std::fs::{self};
 
-        let wiki_files_dir = "src/wiki_files/";
+        let wiki_files_dir = "src/examples/";
         let txt_files = list_txt_files(wiki_files_dir).unwrap();
 
         // Read batch of files into strings
@@ -287,18 +224,6 @@ mod tests {
         }
 
         let clean_strings = clean_list_of_strings_single_pass(strings, 50);
-
-        // // Read batch of files into strings
-        // let mut strings: Vec<String> = vec![];
-        // for single_txt_file in txt_files.iter() {
-        //     let path = format!("{}{}", wiki_files_dir, single_txt_file);
-        //     let content = fs::read_to_string(path).unwrap();
-        //     strings.push(content);
-        // }
-        //
-        // let clean_strings_old = clean_list_of_strings_parallel(strings, 50);
-        // assert_eq!(clean_strings_old, clean_strings);
-        //
-        // println!("{:?}", clean_strings);
+        assert_eq!(clean_strings.len(), 11)
     }
 }

@@ -2,7 +2,6 @@ extern crate cyclic_poly_23;
 extern crate itertools;
 extern crate pyo3;
 
-mod from_files;
 mod string_filter_rolling_hash;
 mod test_utils;
 
@@ -24,7 +23,7 @@ use pyo3::prelude::*;
 #[pyo3(text_signature = "(strings: list[str], minimum_size: int) -> list[str]")]
 fn filter_list_of_strings(strings: Vec<String>, minimum_size: usize) -> PyResult<Vec<String>> {
     let filtered_strings =
-        string_filter_rolling_hash::clean_list_of_strings_parallel(strings, minimum_size);
+        string_filter_rolling_hash::clean_list_of_strings_single_pass(strings, minimum_size);
     Ok(filtered_strings)
 }
 
