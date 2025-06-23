@@ -23,7 +23,8 @@ use pyo3::prelude::*;
 #[pyo3(signature = (strings, minimum_size))]
 #[pyo3(text_signature = "(strings: list[str], minimum_size: int) -> list[str]")]
 fn filter_list_of_strings(strings: Vec<String>, minimum_size: usize) -> PyResult<Vec<String>> {
-    let filtered_strings = string_filter_rolling_hash::clean_list_of_strings(strings, minimum_size);
+    let filtered_strings =
+        string_filter_rolling_hash::clean_list_of_strings_parallel(strings, minimum_size);
     Ok(filtered_strings)
 }
 

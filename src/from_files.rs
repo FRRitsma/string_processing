@@ -1,12 +1,9 @@
-
 #[cfg(test)]
 
 mod tests {
     use crate::string_filter_rolling_hash::StringSupervisor;
     use crate::test_utils::list_txt_files;
     use std::fs;
-
-
 
     #[test]
     fn debug_1() {
@@ -35,5 +32,4 @@ mod tests {
             }
         }
     }
-
 }
