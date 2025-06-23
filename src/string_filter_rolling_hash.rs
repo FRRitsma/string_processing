@@ -49,7 +49,7 @@ impl StringSupervisor {
         }
     }
 
-    fn reducable(&self) -> bool {
+    fn reducible(&self) -> bool {
         self.window_size < self.base_string.len()
     }
 
@@ -92,9 +92,8 @@ impl StringSupervisor {
         filter_range_vec
     }
 
-
     fn filter_string_from_hashset(&mut self, filter_hashset: &HashSet<u64>) -> String {
-        if self.reducable() {
+        if self.reducible() {
             for range in self.filter_range(filter_hashset).into_iter().rev() {
                 // Convert char-index range to byte-index range using byte_offsets
                 let byte_start = self.byte_offsets[range.start];
@@ -107,8 +106,17 @@ impl StringSupervisor {
 }
 
 fn get_hash_vec_and_hash_set(bytes: Vec<u8>, window_size: usize) -> (Vec<u64>, HashSet<u64>) {
-    let mut hash_vec: Vec<u64> = Vec::with_capacity(bytes.len().saturating_sub(window_size) + 1);
+    let amount_of_hashes = bytes.len().saturating_sub(window_size) + 1;
+
+    // Initialize vector:
+    let mut hash_vec: Vec<u64> = Vec::new();
+    hash_vec.reserve_exact(amount_of_hashes);
+
+    // Initialize hashset:
     let mut hash_set: HashSet<u64> = HashSet::new();
+    hash_set.reserve(amount_of_hashes);
+
+
     let mut hasher = CyclicPoly64::from_block(&bytes[0..window_size]);
 
     hash_set.insert(hasher.value());
