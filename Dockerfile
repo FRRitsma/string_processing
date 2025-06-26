@@ -1,14 +1,34 @@
-#Testing the installation of the python interface of the rust function
+# Testing the installation of the Python interface of the Rust function
 FROM python:3.10-slim
 LABEL authors="frrit"
 
-# Install string_processing
-RUN apt-get update && apt-get install -y --no-install-recommends git
-RUN pip install --upgrade pip
-#RUN pip install https://github.com/FRRitsma/string_processing/releases/download/v1/string_processing-0.1.0-cp310-cp310-manylinux_2_34_x86_64.whl
-RUN pip install --extra-index-url https://frritsma.github.io/string_processing/simple string_processing
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 
+# Confirm the wheel index is reachable (optional but useful for debugging)
+RUN curl -I https://frritsma.github.io/string_processing/simple/string_processing/
+
+# Upgrade pip
+RUN pip install --upgrade pip
+
+# Install the Rust-based Python package from the custom GitHub Pages index
+RUN pip install --no-cache-dir \
+    --extra-index-url https://frritsma.github.io/string_processing/simple \
+    string_processing
+
+# Install test dependencies
 RUN pip install pytest
-COPY python_testing python_testing
-RUN cd python_testing; python -m pytest
+
+# Copy test suite into container
+COPY python_testing/ /python_testing/
+
+# Run tests
+WORKDIR /python_testing
+RUN pytest
+
+# Prevent container from exiting immediately (optional, for manual inspection)
 ENTRYPOINT ["tail", "-f", "/dev/null"]
