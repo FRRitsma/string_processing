@@ -59,13 +59,12 @@ jobs:
       - name: Download all built wheels
         uses: actions/download-artifact@v4
         with:
-          name: built-wheels
-          path: target/wheels
+          path: wheels
 
       - name: Copy wheels to static index
         run: |
           mkdir -p docs/simple/${PACKAGE_NAME}/
-          cp wheels/*.whl docs/simple/${PACKAGE_NAME}/
+          find wheels -name '*.whl' -exec cp {} docs/simple/${PACKAGE_NAME}/ \;
 
       - name: Generate/Update index.html
         run: |
