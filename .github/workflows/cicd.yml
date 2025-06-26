@@ -65,7 +65,7 @@ jobs:
       - name: Copy wheels to static index
         run: |
           mkdir -p simple/
-          find wheels -name '*.whl' -exec cp {} docs/simple/${PACKAGE_NAME}/ \;
+          find wheels -name '*.whl' -exec cp {} simple/${PACKAGE_NAME}/ \;
 
       - name: Generate/Update index.html
         run: |
