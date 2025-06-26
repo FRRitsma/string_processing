@@ -70,12 +70,12 @@ jobs:
 
       - name: Generate/Update index.html
         run: |
-          cd simple/string_processing/
-          echo "<html><body>" > index.html
-          for whl in *.whl; do
-            echo "<a href=\"$whl\">$whl</a><br>" >> index.html
+          echo "<html><body>" > simple/index.html
+          for whl in simple/string_processing/*.whl; do
+            fname=$(basename "$whl")
+            echo "<a href=\"string_processing/$fname\">$fname</a><br>" >> simple/index.html
           done
-          echo "</body></html>" >> index.html
+          echo "</body></html>" >> simple/index.html
 
       - name: Commit and push wheels
         uses: stefanzweifel/git-auto-commit-action@v5
