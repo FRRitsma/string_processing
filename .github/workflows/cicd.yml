@@ -39,7 +39,7 @@ jobs:
       run: pip install maturin==1.4.0
 
     - name: Build wheels
-      run: maturin build --release --strip --interpreter python --out simple/${PACKAGE_NAME}/
+      run: maturin build --release --strip --interpreter python --out simple/string_processing/
       env:
         MATURIN_PYPI_MANYLINUX: auto
 
