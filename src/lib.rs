@@ -1,5 +1,4 @@
 extern crate cyclic_poly_23;
-extern crate itertools;
 extern crate pyo3;
 
 mod string_filter_rolling_hash;
