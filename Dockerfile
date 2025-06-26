@@ -17,7 +17,7 @@ RUN pip install --upgrade pip
 
 # Install the Rust-based Python package from the custom GitHub Pages index
 RUN pip install --no-cache-dir \
-    --extra-index-url https://frritsma.github.io/string_processing/simple \
+    --extra-index-url https://frritsma.github.io/string_processing/ \
     string_processing
 
 # Install test dependencies
