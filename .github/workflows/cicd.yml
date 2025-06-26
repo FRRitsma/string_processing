@@ -60,7 +60,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: built-wheels
-          path: wheels
+          path: target/wheels
 
       - name: Copy wheels to static index
         run: |
