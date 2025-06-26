@@ -64,12 +64,13 @@ jobs:
 
       - name: Copy wheels to static index
         run: |
-          mkdir -p simple/
+          mkdir -p simple/${PACKAGE_NAME}/
           find wheels -name '*.whl' -exec cp {} simple/${PACKAGE_NAME}/ \;
+          ls -l simple/${PACKAGE_NAME}/
 
       - name: Generate/Update index.html
         run: |
-          cd simple/
+          cd simple/${PACKAGE_NAME}/
           echo "<html><body>" > index.html
           for whl in *.whl; do
             echo "<a href=\"$whl\">$whl</a><br>" >> index.html
