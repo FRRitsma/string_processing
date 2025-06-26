@@ -47,7 +47,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
-        path: target/wheels/*.whl
+        path: simple/*.whl
         retention-days: 5
 
   package:
