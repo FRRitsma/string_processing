@@ -5,7 +5,7 @@ name: Build Rust Python wheels for all platforms. v1
 on:
   push:
     branches:
-      - main
+      - master
 
 env:
   PACKAGE_NAME: string_processing
