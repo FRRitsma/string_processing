@@ -62,23 +62,24 @@ jobs:
         with:
           path: simple
 
-      - name: Copy wheels to static index
+      - name: Move wheels to PyPI-style structure
         run: |
           mkdir -p simple/string_processing/
           find simple -name '*.whl' -exec cp {} simple/string_processing/ \;
-          ls -l simple/${PACKAGE_NAME}/
 
-      - name: Generate/Update index.html
+      - name: Generate package index
         run: |
-          echo "<html><body>" > simple/index.html
-          for whl in simple/string_processing/*.whl; do
-            fname=$(basename "$whl")
-            echo "<a href=\"string_processing/$fname\">$fname</a><br>" >> simple/index.html
+          cd simple/string_processing/
+          echo "<html><body>" > index.html
+          for whl in *.whl; do
+            echo "<a href=\"$whl\">$whl</a><br>" >> index.html
           done
-          echo "</body></html>" >> simple/index.html
+          echo "</body></html>" >> index.html
+          cd ../
+          echo "<html><body><a href=\"string_processing/\">string_processing</a><br></body></html>" > index.html
 
-      - name: Commit and push wheels
+      - name: Commit and push static index
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Add wheels for all platforms and Python versions"
+          commit_message: "Update GitHub Pages package index"
           branch: master
