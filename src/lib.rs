@@ -32,7 +32,7 @@ fn string_processing(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(filter_list_of_strings, module)?)?;
 
     // Add __all__ (correct modern PyO3 way)
-    let all = vec!["filter_list_of_strings", "filter_list_of_strings_prefix"];
+    let all = vec!["filter_list_of_strings"];
     module.add("__all__", all)?;
 
     Ok(())
