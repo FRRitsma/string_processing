@@ -34,6 +34,8 @@ impl StringSupervisor {
             byte_offsets.push(o);
             chars.push(c);
         }
+        byte_offsets.push(len);
+
         let mut bytes = Vec::with_capacity(len);
         bytes.extend(chars.drain(..).map(|c| c as u8));
 
@@ -96,8 +98,14 @@ impl StringSupervisor {
         if self.reducible() {
             for range in self.filter_range(filter_hashset).into_iter().rev() {
                 // Convert char-index range to byte-index range using byte_offsets
-                let byte_start = self.byte_offsets[range.start];
-                let byte_end = self.byte_offsets[range.end].min(self.base_string.len());
+                // let byte_start = self.byte_offsets[range.start];
+                // let byte_end = self.byte_offsets[range.end].min(self.base_string.len());
+
+                let byte_start = self.base_string.char_indices().nth(range.start).map(|(i, _)| i).unwrap();
+                let byte_end = self.base_string.char_indices().nth(range.end).map(|(i, _)| i).unwrap_or(self.base_string.len());
+
+
+
 
                 self.base_string.drain(byte_start..byte_end); // ERROR occurs here
             }
@@ -222,7 +230,7 @@ mod tests {
     fn clean_large_set_of_files_single_pass() {
         use std::fs::{self};
 
-        let wiki_files_dir = "src/examples/";
+        let wiki_files_dir = "src/wiki_files/";
         let txt_files = list_txt_files(wiki_files_dir).unwrap();
 
         // Read batch of files into strings
@@ -234,6 +242,7 @@ mod tests {
         }
 
         let clean_strings = clean_list_of_strings_single_pass(strings, 50);
-        assert_eq!(clean_strings.len(), 11)
+        println!("{:?}", clean_strings);
+        assert_eq!(clean_strings.len(), 148)
     }
 }
