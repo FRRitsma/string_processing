@@ -83,7 +83,7 @@ impl StringSupervisor {
                     // Start of window:
                     (false, true) => {
                         range_start = index;
-                        range_end = index + self.window_size;
+                        range_end = index + self.window_size; // TODO: Is byte_off
                     }
                     (false, false) => {}
                 }
@@ -97,8 +97,9 @@ impl StringSupervisor {
             for range in self.filter_range(filter_hashset).into_iter().rev() {
                 // Convert char-index range to byte-index range using byte_offsets
                 let byte_start = self.byte_offsets[range.start];
-                let byte_end = self.byte_offsets[range.end];
-                self.base_string.drain(byte_start..byte_end);
+                let byte_end = self.byte_offsets[range.end].min(self.base_string.len());
+
+                self.base_string.drain(byte_start..byte_end); // ERROR occurs here
             }
         }
         self.base_string.clone() // This clone shouldn't be necessary, but somehow it is
@@ -120,7 +121,7 @@ fn get_hash_vec_and_hash_set(bytes: Vec<u8>, window_size: usize) -> (Vec<u64>, H
 
     hash_set.insert(hasher.value());
     hash_vec.push(hasher.value());
-    for remove in 0..bytes.len().saturating_sub(window_size) {
+    for remove in 0..(amount_of_hashes.saturating_sub(1)) {
         let add = remove + window_size;
         hasher.rotate(bytes[remove], bytes[add]);
         hash_set.insert(hasher.value());
