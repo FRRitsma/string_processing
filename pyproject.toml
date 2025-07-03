@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "string_processing"
-version = "0.1.0"  # Auto-synced with Cargo.toml
+version = "0.1.1"  # Auto-synced with Cargo.toml
 requires-python = ">=3.10"
 
 [tool.maturin]
