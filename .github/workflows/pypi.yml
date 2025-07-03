@@ -8,6 +8,9 @@ on:
 
 jobs:
   build-wheels:
+    permissions:
+      contents: read
+      actions: write
     uses: ./.github/workflows/build_wheels.yml
 
   upload-to-pypi:
