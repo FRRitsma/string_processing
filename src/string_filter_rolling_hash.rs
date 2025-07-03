@@ -103,10 +103,6 @@ impl StringSupervisor {
 
                 let byte_start = self.base_string.char_indices().nth(range.start).map(|(i, _)| i).unwrap();
                 let byte_end = self.base_string.char_indices().nth(range.end).map(|(i, _)| i).unwrap_or(self.base_string.len());
-
-
-
-
                 self.base_string.drain(byte_start..byte_end); // ERROR occurs here
             }
         }
