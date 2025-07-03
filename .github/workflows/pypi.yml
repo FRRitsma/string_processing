@@ -44,3 +44,9 @@ jobs:
 
       - name: Echo something weird
         run: echo "HEeeelloooo"
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__                   # Always "__token__" for token authentication
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }} # Add this secret in your GitHub repo!
+        run: twine upload dist/*
