@@ -29,11 +29,12 @@ jobs:
 #
 #      - name: List wheels
 #          run: ls -l dist
-      - name: Download built wheels
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: built-wheels
           path: dist
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: List wheels
         run: ls -l dist
