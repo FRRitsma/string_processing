@@ -37,9 +37,6 @@ jobs:
       env:
         MATURIN_PYPI_MANYLINUX: auto
 
-    - name: List built wheels
-      run: ls -lh target/wheels
-
     - name: Upload wheels
       uses: actions/upload-artifact@v4
       with:
