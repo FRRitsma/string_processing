@@ -2,10 +2,9 @@ name: Release python package to PyPi
 
 
 on:
-  workflow_dispatch:
-
-
-
+  push:
+    branches:
+      - pypi_release
 
 jobs:
   build-wheels:
