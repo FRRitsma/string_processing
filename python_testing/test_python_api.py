@@ -5,7 +5,7 @@ def test_filter_list_of_strings_removes_substring() -> None:
     substring: str = "cccccc"
     strings: list[str] = ["aaaaaaaa", "bbbbbbb"]
     test_input: list[str] = [string + substring for string in strings]
-    assert filter_list_of_strings(test_input, 4) == strings
+    assert filter_list_of_strings(test_input, 3) == strings
     assert strings != test_input
 
 

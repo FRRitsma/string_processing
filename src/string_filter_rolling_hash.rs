@@ -24,6 +24,7 @@ impl StringSupervisor {
 
         // Initialize vectors:
         let len = base_string.len();
+
         let index: Vec<(usize, char)> = base_string.char_indices().collect();
         let mut chars = Vec::with_capacity(len);
 
@@ -243,5 +244,40 @@ mod tests {
         let clean_strings = clean_list_of_strings_single_pass(strings, 50);
         println!("{:?}", clean_strings);
         assert_eq!(clean_strings.len(), 148)
+    }
+
+
+
+    #[test]
+    fn hash_vec_length_equals_none(){
+        let string = "cccccc".to_string();
+        let string_supervisor: StringSupervisor = StringSupervisor::from_string(string, 7);
+        assert_eq!(string_supervisor.hash_vec.len(), 0);
+    }
+
+
+    #[test]
+    fn hash_vec_length_equals_one(){
+        let string = "cccccc".to_string();
+        let string_supervisor: StringSupervisor = StringSupervisor::from_string(string, 6);
+        assert_eq!(string_supervisor.hash_vec.len(), 1);
+    }
+
+    #[test]
+    fn hash_vec_length_equals_two(){
+        let string = "cccccc".to_string();
+        let string_supervisor: StringSupervisor = StringSupervisor::from_string(string, 5);
+        assert_eq!(string_supervisor.hash_vec.len(), 2);
+    }
+
+    #[test]
+    fn clean_two_simple_strings() {
+        let sub_string = "cccccc";
+        let string_a = "aaaaaaaa";
+        let string_b = "bbbbbbb";
+        let strings: Vec<String> = vec![string_a.to_string() + sub_string, string_b.to_string() + sub_string];
+        let clean_strings = clean_list_of_strings_single_pass(strings, 3);
+        assert_eq!(clean_strings, vec![string_a.to_string(), string_b.to_string()]);
+        println!("{:?}", clean_strings)
     }
 }
