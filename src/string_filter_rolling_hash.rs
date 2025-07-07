@@ -6,7 +6,6 @@ use std::ops::Range;
 pub struct StringSupervisor {
     base_string: String,
     window_size: usize,
-    byte_offsets: Vec<usize>,
     hash_vec: Vec<u64>,
     complete_hashset: HashSet<u64>,
 }
@@ -18,7 +17,6 @@ impl StringSupervisor {
             return StringSupervisor {
                 base_string,
                 window_size,
-                byte_offsets: vec![],
                 hash_vec: vec![],
                 complete_hashset: HashSet::new(),
             };
@@ -27,14 +25,11 @@ impl StringSupervisor {
         // Initialize vectors:
         let len = base_string.len();
         let index: Vec<(usize, char)> = base_string.char_indices().collect();
-        let mut byte_offsets = Vec::with_capacity(len);
         let mut chars = Vec::with_capacity(len);
 
-        for (o, c) in index.into_iter() {
-            byte_offsets.push(o);
+        for (_, c) in index.into_iter() {
             chars.push(c);
         }
-        byte_offsets.push(len);
 
         let mut bytes = Vec::with_capacity(len);
         bytes.extend(chars.drain(..).map(|c| c as u8));
@@ -45,7 +40,6 @@ impl StringSupervisor {
         StringSupervisor {
             base_string,
             window_size,
-            byte_offsets,
             hash_vec,
             complete_hashset: complete_hash_set,
         }
@@ -85,7 +79,7 @@ impl StringSupervisor {
                     // Start of window:
                     (false, true) => {
                         range_start = index;
-                        range_end = index + self.window_size; // TODO: Is byte_off
+                        range_end = index + self.window_size;
                     }
                     (false, false) => {}
                 }
@@ -94,19 +88,22 @@ impl StringSupervisor {
         filter_range_vec
     }
 
-    fn filter_string_from_hashset(&mut self, filter_hashset: &HashSet<u64>) -> String {
+    fn filter_string_from_hashset(&mut self, filter_hashset: &HashSet<u64>) {
         if self.reducible() {
-            for range in self.filter_range(filter_hashset).into_iter().rev() {
-                // Convert char-index range to byte-index range using byte_offsets
-                // let byte_start = self.byte_offsets[range.start];
-                // let byte_end = self.byte_offsets[range.end].min(self.base_string.len());
+            let byte_offsets: Vec<usize> =
+                self.base_string.char_indices().map(|(i, _)| i).collect();
 
-                let byte_start = self.base_string.char_indices().nth(range.start).map(|(i, _)| i).unwrap();
-                let byte_end = self.base_string.char_indices().nth(range.end).map(|(i, _)| i).unwrap_or(self.base_string.len());
-                self.base_string.drain(byte_start..byte_end); // ERROR occurs here
+            for range in self.filter_range(filter_hashset).into_iter().rev() {
+                let byte_start = byte_offsets[range.start];
+                let byte_end = byte_offsets
+                    .get(range.end)
+                    .copied()
+                    .unwrap_or(self.base_string.len())
+                    .min(self.base_string.len());
+
+                self.base_string.drain(byte_start..byte_end);
             }
         }
-        self.base_string.clone() // This clone shouldn't be necessary, but somehow it is
     }
 }
 
@@ -165,15 +162,21 @@ pub(crate) fn clean_list_of_strings_single_pass(
     strings: Vec<String>,
     minimum_size: usize,
 ) -> Vec<String> {
-    let supervisor_vec: Vec<StringSupervisor> = strings
+
+    // Create a supervisor for each string:
+    let mut supervisor_vec: Vec<StringSupervisor> = strings
         .into_iter()
         .map(|s| StringSupervisor::from_string(s, minimum_size))
         .collect();
+
+    // Compute second occurrences:
     let filter_hashset = get_all_second_occurrences_of_substrings(&supervisor_vec);
-    supervisor_vec
-        .into_iter()
-        .map(|mut m| m.filter_string_from_hashset(&filter_hashset))
-        .collect()
+
+    for s in supervisor_vec.iter_mut(){
+        s.filter_string_from_hashset(&filter_hashset)
+    }
+
+    supervisor_vec.into_iter().map(|m| m.base_string).collect()
 }
 
 #[cfg(test)]
