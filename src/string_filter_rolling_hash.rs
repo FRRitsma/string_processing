@@ -8,31 +8,47 @@ pub struct StringSupervisor {
     window_size: usize,
     hash_vec: Vec<u64>,
     complete_hashset: HashSet<u64>,
+    character_count: usize,
+}
+
+#[derive(Debug)]
+struct DeleteRange{
+    start: usize,
+    end: usize,
+}
+
+
+impl DeleteRange{
+    fn new(start: usize, end: usize) -> Self{
+        DeleteRange{start, end}
+    }
 }
 
 impl StringSupervisor {
     // Constructor:
     fn from_string(base_string: String, window_size: usize) -> Self {
-        if window_size > base_string.len() {
+
+        let character_count = base_string.chars().count();
+
+        if window_size > character_count {
             return StringSupervisor {
                 base_string,
                 window_size,
                 hash_vec: vec![],
                 complete_hashset: HashSet::new(),
+                character_count,
             };
         }
 
         // Initialize vectors:
-        let len = base_string.len();
-
         let index: Vec<(usize, char)> = base_string.char_indices().collect();
-        let mut chars = Vec::with_capacity(len);
+        let mut chars = Vec::with_capacity(character_count);
 
         for (_, c) in index.into_iter() {
             chars.push(c);
         }
 
-        let mut bytes = Vec::with_capacity(len);
+        let mut bytes = Vec::with_capacity(character_count);
         bytes.extend(chars.drain(..).map(|c| c as u8));
 
         // Perform hashing:
@@ -43,6 +59,7 @@ impl StringSupervisor {
             window_size,
             hash_vec,
             complete_hashset: complete_hash_set,
+            character_count,
         }
     }
 
@@ -60,8 +77,8 @@ impl StringSupervisor {
         is_duplicate
     }
 
-    fn filter_range(&self, filter_hashset: &HashSet<u64>) -> Vec<Range<usize>> {
-        let mut filter_range_vec: Vec<Range<usize>> = vec![];
+    fn filter_range(&self, filter_hashset: &HashSet<u64>) -> Vec<DeleteRange> {
+        let mut filter_range_vec: Vec<DeleteRange> = vec![];
 
         let mut duplicate_mask = self.is_duplicate_mask(filter_hashset);
         duplicate_mask.push(false);
@@ -76,7 +93,7 @@ impl StringSupervisor {
                         range_end += 1;
                     }
                     // End of window:
-                    (true, false) => filter_range_vec.push(range_start..range_end),
+                    (true, false) => filter_range_vec.push(DeleteRange::new(range_start, range_end)),
                     // Start of window:
                     (false, true) => {
                         range_start = index;
@@ -89,20 +106,32 @@ impl StringSupervisor {
         filter_range_vec
     }
 
+    // fn filter_mask(&self, filter_hashset: &HashSet<u64>) -> Vec<bool>{
+    //     let mask: Vec<bool> = Vec::reserve_exact(self.base_string.chars().count());
+    //     for (index, hash) in self.hash_vec.iter().enumerate(){
+    //
+    //     }
+    //     todo!()
+    // }
+
+
     fn filter_string_from_hashset(&mut self, filter_hashset: &HashSet<u64>) {
         if self.reducible() {
-            let byte_offsets: Vec<usize> =
+            let mut byte_offsets: Vec<usize> =
                 self.base_string.char_indices().map(|(i, _)| i).collect();
+            byte_offsets.push(self.base_string.len());
 
-            for range in self.filter_range(filter_hashset).into_iter().rev() {
+            let clear_ranges: Vec<DeleteRange> = self.filter_range(filter_hashset).into_iter().rev().collect();
+
+            for range in clear_ranges {
                 let byte_start = byte_offsets[range.start];
                 let byte_end = byte_offsets
                     .get(range.end)
                     .copied()
-                    .unwrap_or(self.base_string.len())
-                    .min(self.base_string.len());
+                    .unwrap_or(self.base_string.len());
 
                 self.base_string.drain(byte_start..byte_end);
+                byte_offsets.drain(range.start..range.end);
             }
         }
     }
@@ -271,8 +300,29 @@ mod tests {
     }
 
     #[test]
-    fn clean_two_simple_strings() {
-        let sub_string = "cccccc";
+    fn clean_two_simple_strings_with_overlap() {
+        let sub_string = "cccccd";
+        let string_a = "aaaaaaaa";
+        let string_b = "bbbbbbb";
+
+        let mut sub_string_owned = sub_string.to_string();
+
+        let mut byte_offsets: Vec<usize> =
+                sub_string_owned.char_indices().map(|(i, _)| i).collect();
+
+        sub_string_owned.drain(0..5);
+        println!("{:?}", byte_offsets);
+
+        //
+        // let strings: Vec<String> = vec![string_a.to_string() + sub_string, string_b.to_string() + sub_string];
+        // let clean_strings = clean_list_of_strings_single_pass(strings, 3);
+        // assert_eq!(clean_strings, vec![string_a.to_string(), string_b.to_string()]);
+        // println!("{:?}", clean_strings)
+    }
+
+    #[test]
+    fn clean_two_simple_strings_no_overlap() {
+        let sub_string = "";
         let string_a = "aaaaaaaa";
         let string_b = "bbbbbbb";
         let strings: Vec<String> = vec![string_a.to_string() + sub_string, string_b.to_string() + sub_string];
