@@ -18,6 +18,7 @@ impl StringSupervisor {
         let mut chars: Vec<char> = base_string.chars().collect();
         let character_count = chars.len();
 
+        // Return empty string supervisor:
         if window_size > character_count {
             return StringSupervisor {
                 base_string,
@@ -28,11 +29,13 @@ impl StringSupervisor {
             };
         }
 
-        let mut bytes = Vec::with_capacity(character_count);
-        bytes.extend(chars.drain(..).map(|c| c as u8));
+        // Cyclic hashing works with bytes, so some characters must be converted (lossy):C
+        let mut chars_as_bytes = Vec::with_capacity(character_count);
+        chars_as_bytes.extend(chars.drain(..).map(|c| c as u8));
 
         // Perform hashing:
-        let (hash_vec, complete_hash_set) = get_hash_vec_and_hash_set(bytes, window_size);
+        let (hash_vec, complete_hash_set) = get_hash_vec_and_hash_set(chars_as_bytes, window_size);
+
         StringSupervisor {
             base_string,
             window_size,
