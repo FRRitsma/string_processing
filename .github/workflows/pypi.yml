@@ -1,0 +1,39 @@
+name: Release python package to PyPi
+
+
+on:
+  push:
+    branches:
+      - pypi_release
+
+jobs:
+  build-wheels:
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/build_wheels.yml
+
+  upload-to-pypi:
+    needs: build-wheels
+    name: Upload pre-built wheels to pypi
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+
+      - name: List wheels
+        run: ls -l dist
+
+      - name: Install twine
+        run: pip install twine
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*

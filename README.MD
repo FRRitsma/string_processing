@@ -1,34 +1,10 @@
-[Steps in creating a python api:
+# Intro:
+A library to help pre-processing webscraped text files. 
 
-1. cargo add pyo3
-2. add  file "lib.rs" in ./src, attach to main.rs: "mod lib;"
+# Functions:
+Currently has only one function:
 
-Adapt the cargo.toml, include:
+`def filter_list_of_strings(strings: list[str], min_size: int) -> list[str]:`
 
-[lib]
-name = "name_in_python"
+When scraping webpages a lot of useless text is included: menus, headers, footers. These are large sections of text that are repeated exactly between multiple files. This function detects repeated sections of text between files and removes them.
 
-In lib.rs add:
-#[pymodule]
-
-fn name_in_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    Ok(())
-}
-
-
-# Local install:
-Build a .venv:
-
-`python -m venv demo_env`
-
-Activate environment:
-
-`demo_env\Scripts\activate`
-
-Install from wheel:
-
-`pip install target/wheels/string_processing-0.1.0-cp311-cp311-win_amd64.whl`
-
-# Pip install from github:
-
-`pip install https://github.com/FRRitsma/string_processing/releases/download/v1/string_processing-0.1.0-cp310-cp310-manylinux_2_34_x86_64.whl`

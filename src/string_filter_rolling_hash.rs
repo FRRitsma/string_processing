@@ -6,48 +6,42 @@ use std::ops::Range;
 pub struct StringSupervisor {
     base_string: String,
     window_size: usize,
-    byte_offsets: Vec<usize>,
     hash_vec: Vec<u64>,
     complete_hashset: HashSet<u64>,
+    character_count: usize,
 }
 
 impl StringSupervisor {
     // Constructor:
     fn from_string(base_string: String, window_size: usize) -> Self {
-        if window_size > base_string.len() {
+        // Initialize vectors:
+        let mut chars: Vec<char> = base_string.chars().collect();
+        let character_count = chars.len();
+
+        // Return empty string supervisor:
+        if window_size > character_count {
             return StringSupervisor {
                 base_string,
                 window_size,
-                byte_offsets: vec![],
                 hash_vec: vec![],
                 complete_hashset: HashSet::new(),
+                character_count,
             };
         }
 
-        // Initialize vectors:
-        let len = base_string.len();
-        let index: Vec<(usize, char)> = base_string.char_indices().collect();
-        let mut byte_offsets = Vec::with_capacity(len);
-        let mut chars = Vec::with_capacity(len);
-
-        for (o, c) in index.into_iter() {
-            byte_offsets.push(o);
-            chars.push(c);
-        }
-        byte_offsets.push(len);
-
-        let mut bytes = Vec::with_capacity(len);
-        bytes.extend(chars.drain(..).map(|c| c as u8));
+        // Cyclic hashing works with bytes, so some characters must be converted (lossy):C
+        let mut chars_as_bytes = Vec::with_capacity(character_count);
+        chars_as_bytes.extend(chars.drain(..).map(|c| c as u8));
 
         // Perform hashing:
-        let (hash_vec, complete_hash_set) = get_hash_vec_and_hash_set(bytes, window_size);
+        let (hash_vec, complete_hash_set) = get_hash_vec_and_hash_set(chars_as_bytes, window_size);
 
         StringSupervisor {
             base_string,
             window_size,
-            byte_offsets,
             hash_vec,
             complete_hashset: complete_hash_set,
+            character_count,
         }
     }
 
@@ -55,62 +49,41 @@ impl StringSupervisor {
         self.window_size < self.base_string.len()
     }
 
-    fn is_duplicate_mask(&self, filter_hashset: &HashSet<u64>) -> Vec<bool> {
-        // Returns a mask that is true where hash_vec has duplicated string windows
-        let is_duplicate = self
-            .hash_vec
-            .iter()
-            .map(|x| filter_hashset.contains(&x))
-            .collect();
-        is_duplicate
-    }
-
-    fn filter_range(&self, filter_hashset: &HashSet<u64>) -> Vec<Range<usize>> {
-        let mut filter_range_vec: Vec<Range<usize>> = vec![];
-
-        let mut duplicate_mask = self.is_duplicate_mask(filter_hashset);
-        duplicate_mask.push(false);
-
-        let mut range_start = 0;
-        let mut range_end = self.window_size;
-        for (index, window) in duplicate_mask.windows(2).enumerate() {
-            if let [i0, i1] = window {
-                match (*i0, *i1) {
-                    // Continuation of window:
-                    (true, true) => {
-                        range_end += 1;
-                    }
-                    // End of window:
-                    (true, false) => filter_range_vec.push(range_start..range_end),
-                    // Start of window:
-                    (false, true) => {
-                        range_start = index;
-                        range_end = index + self.window_size; // TODO: Is byte_off
-                    }
-                    (false, false) => {}
+    fn filter_mask(&self, filter_hashset: &HashSet<u64>) -> Vec<bool> {
+        let mut is_duplicate_mask: Vec<bool> = vec![false; self.character_count];
+        for (index, hash) in self.hash_vec.iter().enumerate() {
+            // Exit iteration if current hash is not in hashset:
+            if !filter_hashset.contains(hash) {
+                continue;
+            }
+            // Reverse loop for set duplicate:
+            let inner_loop_end = index + self.window_size;
+            for i in (index..inner_loop_end).rev() {
+                // If this index is set, all following indices will also have been set,
+                // so the loop can exit:
+                if is_duplicate_mask[i] {
+                    break;
                 }
+                is_duplicate_mask[i] = true;
             }
         }
-        filter_range_vec
+        is_duplicate_mask
     }
 
-    fn filter_string_from_hashset(&mut self, filter_hashset: &HashSet<u64>) -> String {
+    fn filter_string_from_hashset(&mut self, filter_hashset: &HashSet<u64>) {
+        // Remove bytes where characters are part of a duplicate window
+
         if self.reducible() {
-            for range in self.filter_range(filter_hashset).into_iter().rev() {
-                // Convert char-index range to byte-index range using byte_offsets
-                // let byte_start = self.byte_offsets[range.start];
-                // let byte_end = self.byte_offsets[range.end].min(self.base_string.len());
+            let duplicate_mask = self.filter_mask(&filter_hashset);
+            let filtered = self
+                .base_string
+                .chars()
+                .zip(duplicate_mask.iter())
+                .filter_map(|(c, &dup)| if !dup { Some(c) } else { None })
+                .collect::<String>();
 
-                let byte_start = self.base_string.char_indices().nth(range.start).map(|(i, _)| i).unwrap();
-                let byte_end = self.base_string.char_indices().nth(range.end).map(|(i, _)| i).unwrap_or(self.base_string.len());
-
-
-
-
-                self.base_string.drain(byte_start..byte_end); // ERROR occurs here
-            }
+            self.base_string = filtered;
         }
-        self.base_string.clone() // This clone shouldn't be necessary, but somehow it is
     }
 }
 
@@ -169,21 +142,27 @@ pub(crate) fn clean_list_of_strings_single_pass(
     strings: Vec<String>,
     minimum_size: usize,
 ) -> Vec<String> {
-    let supervisor_vec: Vec<StringSupervisor> = strings
+    // Create a supervisor for each string:
+    let mut supervisor_vec: Vec<StringSupervisor> = strings
         .into_iter()
         .map(|s| StringSupervisor::from_string(s, minimum_size))
         .collect();
+
+    // Compute second occurrences:
     let filter_hashset = get_all_second_occurrences_of_substrings(&supervisor_vec);
-    supervisor_vec
-        .into_iter()
-        .map(|mut m| m.filter_string_from_hashset(&filter_hashset))
-        .collect()
+
+    for s in supervisor_vec.iter_mut() {
+        s.filter_string_from_hashset(&filter_hashset)
+    }
+
+    supervisor_vec.into_iter().map(|m| m.base_string).collect()
 }
 
 #[cfg(test)]
 mod tests {
     use crate::string_filter_rolling_hash::StringSupervisor;
     use crate::string_filter_rolling_hash::clean_list_of_strings_single_pass;
+    use crate::string_filter_rolling_hash::get_all_second_occurrences_of_substrings;
     use crate::string_filter_rolling_hash::track_first_and_second_occurrence_of_substring;
     use crate::test_utils::list_txt_files;
     use std::collections::HashSet;
@@ -245,4 +224,112 @@ mod tests {
         println!("{:?}", clean_strings);
         assert_eq!(clean_strings.len(), 148)
     }
+
+    #[test]
+    fn hash_vec_length_equals_none() {
+        let string = "😊cc😊c😊".to_string();
+        let string_supervisor: StringSupervisor = StringSupervisor::from_string(string, 7);
+        assert_eq!(string_supervisor.hash_vec.len(), 0);
+    }
+
+    #[test]
+    fn hash_vec_length_equals_one() {
+        let string = "😊cc😊c😊".to_string();
+        let string_supervisor: StringSupervisor = StringSupervisor::from_string(string, 6);
+        assert_eq!(string_supervisor.hash_vec.len(), 1);
+    }
+
+    #[test]
+    fn hash_vec_length_equals_two() {
+        let string = "😊cc😊c😊".to_string();
+        println!("{:?}", string.clone().char_indices());
+
+        let string_supervisor: StringSupervisor = StringSupervisor::from_string(string, 5);
+
+        assert_eq!(string_supervisor.hash_vec.len(), 2);
+    }
+
+    #[test]
+    fn filter_mask_two_identical_strings() {
+        let string = "cccccd".to_string();
+        let string_supervisor_1: StringSupervisor =
+            StringSupervisor::from_string(string.clone(), 5);
+        let string_supervisor_2: StringSupervisor = StringSupervisor::from_string(string, 5);
+        let hash_set = get_all_second_occurrences_of_substrings(&vec![
+            string_supervisor_1.clone(),
+            string_supervisor_2.clone(),
+        ]);
+        let mask = string_supervisor_1.filter_mask(&hash_set);
+        let expected_mask = vec![true, true, true, true, true, true];
+        assert_eq!(mask, expected_mask);
+    }
+
+    #[test]
+    fn filter_mask_two_strings_different_starts() {
+        let string = "cccccd".to_string();
+        let string_supervisor_1: StringSupervisor =
+            StringSupervisor::from_string("aaa".to_string() + &string, 5);
+        let string_supervisor_2: StringSupervisor =
+            StringSupervisor::from_string("bbb".to_string() + &string, 5);
+        let hash_set = get_all_second_occurrences_of_substrings(&vec![
+            string_supervisor_1.clone(),
+            string_supervisor_2.clone(),
+        ]);
+        let mask = string_supervisor_1.filter_mask(&hash_set);
+        let expected_mask = vec![false, false, false, true, true, true, true, true, true];
+        assert_eq!(mask, expected_mask);
+    }
+
+    #[test]
+    fn filter_mask_two_strings_different_endings() {
+        let string = "cccccd".to_string();
+        let string_supervisor_1: StringSupervisor =
+            StringSupervisor::from_string(string.clone() + "bbb", 5);
+        let string_supervisor_2: StringSupervisor =
+            StringSupervisor::from_string("bbb".to_string() + &string, 5);
+        let hash_set = get_all_second_occurrences_of_substrings(&vec![
+            string_supervisor_1.clone(),
+            string_supervisor_2.clone(),
+        ]);
+        let mask = string_supervisor_1.filter_mask(&hash_set);
+        let expected_mask = vec![true, true, true, true, true, true, false, false, false];
+        assert_eq!(mask, expected_mask);
+    }
+
+    #[test]
+    fn clean_two_simple_strings_no_overlap() {
+        let sub_string = "";
+        let string_a = "aaaaaaaa";
+        let string_b = "bbbbbbb";
+        let strings: Vec<String> = vec![
+            string_a.to_string() + sub_string,
+            string_b.to_string() + sub_string,
+        ];
+
+        let clean_strings = clean_list_of_strings_single_pass(strings, 3);
+        assert_eq!(
+            clean_strings,
+            vec![string_a.to_string(), string_b.to_string()]
+        );
+        println!("{:?}", clean_strings)
+    }
+
+    #[test]
+    fn clean_two_simple_strings_with_overlap() {
+        let sub_string = "ccccc";
+        let string_a = "aaaaaaaa";
+        let string_b = "bbbbbbb";
+        let strings: Vec<String> = vec![
+            string_a.to_string() + sub_string,
+            string_b.to_string() + sub_string,
+        ];
+        let clean_strings = clean_list_of_strings_single_pass(strings, 3);
+        assert_eq!(
+            clean_strings,
+            vec![string_a.to_string(), string_b.to_string()]
+        );
+        println!("{:?}", clean_strings)
+    }
+
+
 }
