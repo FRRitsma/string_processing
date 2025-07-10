@@ -11,22 +11,12 @@ pub struct StringSupervisor {
     character_count: usize,
 }
 
-#[derive(Debug)]
-struct DeleteRange {
-    start: usize,
-    end: usize,
-}
-
-impl DeleteRange {
-    fn new(start: usize, end: usize) -> Self {
-        DeleteRange { start, end }
-    }
-}
-
 impl StringSupervisor {
     // Constructor:
     fn from_string(base_string: String, window_size: usize) -> Self {
-        let character_count = base_string.chars().count();
+        // Initialize vectors:
+        let mut chars: Vec<char> = base_string.chars().collect();
+        let character_count = chars.len();
 
         if window_size > character_count {
             return StringSupervisor {
@@ -38,20 +28,11 @@ impl StringSupervisor {
             };
         }
 
-        // Initialize vectors:
-        let index: Vec<(usize, char)> = base_string.char_indices().collect();
-        let mut chars = Vec::with_capacity(character_count);
-
-        for (_, c) in index.into_iter() {
-            chars.push(c);
-        }
-
         let mut bytes = Vec::with_capacity(character_count);
         bytes.extend(chars.drain(..).map(|c| c as u8));
 
         // Perform hashing:
         let (hash_vec, complete_hash_set) = get_hash_vec_and_hash_set(bytes, window_size);
-
         StringSupervisor {
             base_string,
             window_size,
@@ -63,47 +44,6 @@ impl StringSupervisor {
 
     fn reducible(&self) -> bool {
         self.window_size < self.base_string.len()
-    }
-
-    fn is_duplicate_mask(&self, filter_hashset: &HashSet<u64>) -> Vec<bool> {
-        // Returns a mask that is true where hash_vec has duplicated string windows
-        let is_duplicate = self
-            .hash_vec
-            .iter()
-            .map(|x| filter_hashset.contains(&x))
-            .collect();
-        is_duplicate
-    }
-
-    fn filter_range(&self, filter_hashset: &HashSet<u64>) -> Vec<DeleteRange> {
-        let mut filter_range_vec: Vec<DeleteRange> = vec![];
-
-        let mut duplicate_mask = self.is_duplicate_mask(filter_hashset);
-        duplicate_mask.push(false);
-
-        let mut range_start = 0;
-        let mut range_end = self.window_size;
-        for (index, window) in duplicate_mask.windows(2).enumerate() {
-            if let [i0, i1] = window {
-                match (*i0, *i1) {
-                    // Continuation of window:
-                    (true, true) => {
-                        range_end += 1;
-                    }
-                    // End of window:
-                    (true, false) => {
-                        filter_range_vec.push(DeleteRange::new(range_start, range_end))
-                    }
-                    // Start of window:
-                    (false, true) => {
-                        range_start = index;
-                        range_end = index + self.window_size;
-                    }
-                    (false, false) => {}
-                }
-            }
-        }
-        filter_range_vec
     }
 
     fn filter_mask(&self, filter_hashset: &HashSet<u64>) -> Vec<bool> {
@@ -131,26 +71,15 @@ impl StringSupervisor {
         // Remove bytes where characters are part of a duplicate window
 
         if self.reducible() {
-            let mut byte_offsets: Vec<usize> =
-                self.base_string.char_indices().map(|(i, _)| i).collect();
-            byte_offsets.push(self.base_string.len());
+            let duplicate_mask = self.filter_mask(&filter_hashset);
+            let filtered = self
+                .base_string
+                .chars()
+                .zip(duplicate_mask.iter())
+                .filter_map(|(c, &dup)| if !dup { Some(c) } else { None })
+                .collect::<String>();
 
-            let clear_ranges: Vec<DeleteRange> = self
-                .filter_range(filter_hashset)
-                .into_iter()
-                .rev()
-                .collect();
-
-            for range in clear_ranges {
-                let byte_start = byte_offsets[range.start];
-                let byte_end = byte_offsets
-                    .get(range.end)
-                    .copied()
-                    .unwrap_or(self.base_string.len());
-
-                self.base_string.drain(byte_start..byte_end);
-                byte_offsets.drain(range.start..range.end);
-            }
+            self.base_string = filtered;
         }
     }
 }
@@ -234,7 +163,6 @@ mod tests {
     use crate::string_filter_rolling_hash::track_first_and_second_occurrence_of_substring;
     use crate::test_utils::list_txt_files;
     use std::collections::HashSet;
-    use std::ptr::hash;
 
     #[test]
     fn counting_occurrences_first_only() {
@@ -311,7 +239,10 @@ mod tests {
     #[test]
     fn hash_vec_length_equals_two() {
         let string = "😊cc😊c😊".to_string();
+        println!("{:?}", string.clone().char_indices());
+
         let string_supervisor: StringSupervisor = StringSupervisor::from_string(string, 5);
+
         assert_eq!(string_supervisor.hash_vec.len(), 2);
     }
 
@@ -363,29 +294,26 @@ mod tests {
     }
 
     #[test]
-    fn clean_two_simple_strings_with_overlap() {
-        let sub_string = "cccccd";
+    fn clean_two_simple_strings_no_overlap() {
+        let sub_string = "";
         let string_a = "aaaaaaaa";
         let string_b = "bbbbbbb";
+        let strings: Vec<String> = vec![
+            string_a.to_string() + sub_string,
+            string_b.to_string() + sub_string,
+        ];
 
-        let mut sub_string_owned = sub_string.to_string();
-
-        let mut byte_offsets: Vec<usize> =
-            sub_string_owned.char_indices().map(|(i, _)| i).collect();
-
-        sub_string_owned.drain(0..5);
-        println!("{:?}", byte_offsets);
-
-        //
-        // let strings: Vec<String> = vec![string_a.to_string() + sub_string, string_b.to_string() + sub_string];
-        // let clean_strings = clean_list_of_strings_single_pass(strings, 3);
-        // assert_eq!(clean_strings, vec![string_a.to_string(), string_b.to_string()]);
-        // println!("{:?}", clean_strings)
+        let clean_strings = clean_list_of_strings_single_pass(strings, 3);
+        assert_eq!(
+            clean_strings,
+            vec![string_a.to_string(), string_b.to_string()]
+        );
+        println!("{:?}", clean_strings)
     }
 
     #[test]
-    fn clean_two_simple_strings_no_overlap() {
-        let sub_string = "";
+    fn clean_two_simple_strings_with_overlap() {
+        let sub_string = "ccccc";
         let string_a = "aaaaaaaa";
         let string_b = "bbbbbbb";
         let strings: Vec<String> = vec![
@@ -399,4 +327,6 @@ mod tests {
         );
         println!("{:?}", clean_strings)
     }
+
+
 }
